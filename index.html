@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Builder — ForceNet</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== ВЕРХНЯЯ ПАНЕЛЬ ===== -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-dot"></span>
+      <div class="brand-text">
+        <div class="brand-name">Site<span class="accent"> Builder</span></div>
+        <div class="brand-sub">by ForceNet</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="tbtn" id="btnNewProject" title="Новый проект">📄 Новый</button>
+      <button class="tbtn" id="btnSaveJSON" title="Сохранить проект в файл">💾 Сохранить проект</button>
+      <label class="tbtn" for="fileLoadJSON" title="Загрузить проект из файла">📂 Открыть проект</label>
+      <input type="file" id="fileLoadJSON" accept="application/json" hidden>
+      <button class="tbtn primary" id="btnExport" title="Собрать готовый сайт">⬇️ Экспорт сайта (.html)</button>
+    </div>
+  </header>
+
+  <div class="workarea">
+
+    <!-- ===== ЛЕВАЯ ПАНЕЛЬ ===== -->
+    <aside class="panel panel-screens">
+
+      <div class="tabs" id="leftTabs">
+        <button class="tab-btn active" data-tab="screens">Экраны</button>
+        <button class="tab-btn" data-tab="media">Медиа</button>
+        <button class="tab-btn" data-tab="vars">Переменные</button>
+        <button class="tab-btn" data-tab="tg">Telegram</button>
+      </div>
+
+      <!-- --- ЭКРАНЫ --- -->
+      <div class="tab-pane" id="tab-screens">
+        <div class="panel-title">Экраны</div>
+        <div class="screens-list" id="screensList"></div>
+        <button class="add-btn" id="btnAddScreen">+ добавить экран</button>
+
+        <div class="panel-title mt">Добавить на экран</div>
+        <div class="palette" id="palette">
+          <button class="palette-btn" data-type="title">🔠 Заголовок</button>
+          <button class="palette-btn" data-type="text">📝 Текст</button>
+          <button class="palette-btn" data-type="button">🔘 Кнопка</button>
+          <button class="palette-btn" data-type="input">⌨️ Поле ввода</button>
+          <button class="palette-btn" data-type="image">🖼️ Картинка</button>
+          <button class="palette-btn" data-type="divider">➖ Разделитель</button>
+        </div>
+      </div>
+
+      <!-- --- МЕДИА --- -->
+      <div class="tab-pane" id="tab-media" style="display:none">
+        <div class="panel-title">Медиафайлы</div>
+        <label class="add-btn" for="fileUploadAssets" style="display:block;text-align:center;cursor:pointer;">+ загрузить картинку</label>
+        <input type="file" id="fileUploadAssets" accept="image/*" multiple hidden>
+        <div id="assetsList" style="margin-top:12px;"></div>
+        <div class="small-note">Загруженные файлы можно переименовать, скачать, скопировать или удалить. Используйте их в элементе «Картинка» справа в свойствах.</div>
+      </div>
+
+      <!-- --- ПЕРЕМЕННЫЕ --- -->
+      <div class="tab-pane" id="tab-vars" style="display:none">
+        <div class="panel-title">Переменные</div>
+        <div id="varsList"></div>
+        <button class="add-btn" id="btnAddVar">+ добавить переменную</button>
+        <div class="small-note">Переменные хранят значения (например, из полей ввода) и используются в условиях «если / то / иначе» и в шаблонах Telegram-сообщений.</div>
+      </div>
+
+      <!-- --- TELEGRAM --- -->
+      <div class="tab-pane" id="tab-tg" style="display:none">
+        <div class="panel-title">Telegram-бот</div>
+        <div class="field">
+          <label>Токен бота</label>
+          <input type="text" id="tgToken" placeholder="123456789:AA...">
+        </div>
+        <div class="field">
+          <label>Chat ID</label>
+          <input type="text" id="tgChat" placeholder="-100123456789">
+        </div>
+        <div class="field">
+          <label>Thread / Topic ID (необязательно)</label>
+          <input type="text" id="tgThread" placeholder="например 14">
+        </div>
+        <div class="small-note">Назначьте кнопке действие «Отправить в Telegram» справа в свойствах — сообщение уйдёт в этот чат. Важно: в опубликованном статичном сайте токен виден в исходном коде страницы — не выдавайте боту прав больше, чем требуется для отправки сообщений.</div>
+      </div>
+
+    </aside>
+
+    <!-- ===== ЦЕНТР: ПРЕДПРОСМОТР ===== -->
+    <main class="canvas-wrap">
+      <div class="canvas-toolbar">
+        <span id="activeScreenLabel">—</span>
+        <button class="tbtn small" id="btnPreview">▶️ Предпросмотр (в новой вкладке)</button>
+      </div>
+      <div class="phone-frame">
+        <div class="phone-screen" id="phoneScreen"></div>
+      </div>
+    </main>
+
+    <!-- ===== ПРАВАЯ ПАНЕЛЬ: СВОЙСТВА ===== -->
+    <aside class="panel panel-props" id="propsPanel">
+      <div class="panel-title">Свойства</div>
+      <div class="props-empty" id="propsEmpty">Выберите экран или элемент, чтобы настроить его здесь.</div>
+      <div id="propsContent"></div>
+    </aside>
+
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
