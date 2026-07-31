@@ -46,7 +46,7 @@
         <div class="screens-list" id="screensList"></div>
         <button class="add-btn" id="btnAddScreen">+ добавить экран</button>
 
-        <div class="panel-title mt">Добавить на экран</div>
+        <div class="panel-title mt">Добавить на холст</div>
         <div class="palette" id="palette">
           <button class="palette-btn" data-type="title">🔠 Заголовок</button>
           <button class="palette-btn" data-type="text">📝 Текст</button>
@@ -55,6 +55,7 @@
           <button class="palette-btn" data-type="image">🖼️ Картинка</button>
           <button class="palette-btn" data-type="divider">➖ Разделитель</button>
         </div>
+        <div class="small-note">Элемент можно перетащить мышкой по холсту, а за края/уголок — изменить его ширину, высоту или оба размера сразу.</div>
       </div>
 
       <!-- --- МЕДИА --- -->
@@ -63,7 +64,7 @@
         <label class="add-btn" for="fileUploadAssets" style="display:block;text-align:center;cursor:pointer;">+ загрузить картинку</label>
         <input type="file" id="fileUploadAssets" accept="image/*" multiple hidden>
         <div id="assetsList" style="margin-top:12px;"></div>
-        <div class="small-note">Загруженные файлы можно переименовать, скачать, скопировать или удалить. Используйте их в элементе «Картинка» справа в свойствах.</div>
+        <div class="small-note">Загруженный файл можно переименовать, изменить (заменить содержимое), переместить в списке, скачать, скопировать или удалить. Используйте его в элементе «Картинка» справа.</div>
       </div>
 
       <!-- --- ПЕРЕМЕННЫЕ --- -->
@@ -71,7 +72,7 @@
         <div class="panel-title">Переменные</div>
         <div id="varsList"></div>
         <button class="add-btn" id="btnAddVar">+ добавить переменную</button>
-        <div class="small-note">Переменные хранят значения (например, из полей ввода) и используются в условиях «если / то / иначе» и в шаблонах Telegram-сообщений.</div>
+        <div class="small-note">Переменные хранят значения (например, из полей ввода или вычислений) и используются в условиях «если / то / иначе» и в шаблонах Telegram-сообщений.</div>
       </div>
 
       <!-- --- TELEGRAM --- -->
@@ -82,27 +83,37 @@
           <input type="text" id="tgToken" placeholder="123456789:AA...">
         </div>
         <div class="field">
+          <label>Кому отправлять</label>
+          <select id="tgMode">
+            <option value="chat">В чат / канал / тему</option>
+            <option value="dm">Мне в личные сообщения (ЛС)</option>
+          </select>
+        </div>
+        <div class="field" id="tgChatWrap">
           <label>Chat ID</label>
           <input type="text" id="tgChat" placeholder="-100123456789">
         </div>
-        <div class="field">
+        <div class="field" id="tgThreadWrap">
           <label>Thread / Topic ID (необязательно)</label>
           <input type="text" id="tgThread" placeholder="например 14">
         </div>
-        <div class="small-note">Назначьте кнопке действие «Отправить в Telegram» справа в свойствах — сообщение уйдёт в этот чат. Важно: в опубликованном статичном сайте токен виден в исходном коде страницы — не выдавайте боту прав больше, чем требуется для отправки сообщений.</div>
+        <div class="field" id="tgUserWrap" style="display:none">
+          <label>Ваш Telegram ID</label>
+          <input type="text" id="tgUserId" placeholder="например 123456789">
+          <div class="field-hint">Узнать свой ID можно у бота @userinfobot. Бот сможет писать вам в ЛС, только если вы сами хотя бы раз напишете ему первым (например «/start») — так устроен Telegram.</div>
+        </div>
+        <div class="small-note">Кнопке назначьте действие «Отправить в Telegram» справа в свойствах. Важно: в статичном сайте токен виден в исходном коде страницы — не выдавайте боту прав больше необходимого.</div>
       </div>
 
     </aside>
 
-    <!-- ===== ЦЕНТР: ПРЕДПРОСМОТР ===== -->
+    <!-- ===== ЦЕНТР: СВОБОДНЫЙ ХОЛСТ ===== -->
     <main class="canvas-wrap">
       <div class="canvas-toolbar">
         <span id="activeScreenLabel">—</span>
         <button class="tbtn small" id="btnPreview">▶️ Предпросмотр (в новой вкладке)</button>
       </div>
-      <div class="phone-frame">
-        <div class="phone-screen" id="phoneScreen"></div>
-      </div>
+      <div class="site-canvas" id="phoneScreen"></div>
     </main>
 
     <!-- ===== ПРАВАЯ ПАНЕЛЬ: СВОЙСТВА ===== -->
