@@ -2,11 +2,27 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Site Builder — ForceNet</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+<!-- ===== МОДАЛКА ВЫБОРА УСТРОЙСТВА (при первом заходе) ===== -->
+<div class="device-modal" id="deviceModal" style="display:none">
+  <div class="device-modal-box">
+    <div class="device-modal-title" data-i18n="device_prompt_title">Как вы заходите?</div>
+    <div class="device-modal-sub" data-i18n="device_prompt_sub">Интерфейс подстроится под выбранное устройство. Это можно поменять позже в меню ☰.</div>
+    <div class="device-modal-buttons">
+      <button class="device-choice-btn" data-device="desktop">
+        <span class="dc-icon">💻</span><span data-i18n="device_desktop">Компьютер</span>
+      </button>
+      <button class="device-choice-btn" data-device="mobile">
+        <span class="dc-icon">📱</span><span data-i18n="device_mobile">Телефон</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <div class="app">
 
@@ -19,99 +35,116 @@
         <div class="brand-sub">by ForceNet</div>
       </div>
     </div>
-    <div class="topbar-actions">
-      <button class="tbtn" id="btnNewProject" title="Новый проект">📄 Новый</button>
-      <button class="tbtn" id="btnSaveJSON" title="Сохранить проект в файл">💾 Сохранить проект</button>
-      <label class="tbtn" for="fileLoadJSON" title="Загрузить проект из файла">📂 Открыть проект</label>
-      <input type="file" id="fileLoadJSON" accept="application/json" hidden>
-      <button class="tbtn primary" id="btnExport" title="Собрать готовый сайт">⬇️ Экспорт сайта (.html)</button>
+
+    <div class="menu-wrap">
+      <button class="tbtn hamburger-btn" id="btnMenu" title="Меню">☰</button>
+      <div class="menu-dropdown" id="menuDropdown" style="display:none">
+        <button class="menu-item" id="mClear">🗑️ <span data-i18n="menu_clear">Очистить</span></button>
+        <button class="menu-item" id="mSave">💾 <span data-i18n="menu_save">Сохранить проект</span></button>
+        <label class="menu-item" for="fileLoadJSON">📂 <span data-i18n="menu_open">Открыть файл</span></label>
+        <input type="file" id="fileLoadJSON" accept="application/json" hidden>
+        <button class="menu-item" id="mExport">⬇️ <span data-i18n="menu_export">Экспорт сайта (.html)</span></button>
+        <button class="menu-item" id="mPreview">▶️ <span data-i18n="menu_preview">Предпросмотр</span></button>
+
+        <div class="menu-sep"></div>
+        <div class="menu-row-label" data-i18n="menu_language">Язык</div>
+        <div class="menu-choice-row" id="langRow">
+          <button class="menu-choice-btn" data-lang="ru">RU</button>
+          <button class="menu-choice-btn" data-lang="en">EN</button>
+        </div>
+
+        <div class="menu-row-label" data-i18n="menu_device">Устройство</div>
+        <div class="menu-choice-row" id="deviceRow">
+          <button class="menu-choice-btn" data-device="desktop">💻</button>
+          <button class="menu-choice-btn" data-device="mobile">📱</button>
+        </div>
+      </div>
     </div>
   </header>
 
-  <div class="workarea">
+  <div class="workarea" id="workarea">
 
     <!-- ===== ЛЕВАЯ ПАНЕЛЬ ===== -->
-    <aside class="panel panel-screens">
+    <aside class="panel panel-screens" id="panelScreens">
 
       <div class="tabs" id="leftTabs">
-        <button class="tab-btn active" data-tab="screens">Экраны</button>
-        <button class="tab-btn" data-tab="media">Медиа</button>
-        <button class="tab-btn" data-tab="vars">Переменные</button>
-        <button class="tab-btn" data-tab="tg">Telegram</button>
+        <button class="tab-btn active" data-tab="screens" data-i18n="tab_screens">Экраны</button>
+        <button class="tab-btn" data-tab="media" data-i18n="tab_media">Медиа</button>
+        <button class="tab-btn" data-tab="vars" data-i18n="tab_vars">Переменные</button>
+        <button class="tab-btn" data-tab="tg" data-i18n="tab_tg">Telegram</button>
       </div>
 
       <!-- --- ЭКРАНЫ --- -->
       <div class="tab-pane" id="tab-screens">
-        <div class="panel-title">Экраны</div>
+        <div class="panel-title" data-i18n="panel_screens_title">Экраны</div>
         <div class="screens-list" id="screensList"></div>
-        <button class="add-btn" id="btnAddScreen">+ добавить экран</button>
+        <button class="add-btn" id="btnAddScreen" data-i18n="btn_add_screen">+ добавить экран</button>
 
-        <div class="panel-title mt">Добавить на холст</div>
+        <div class="panel-title mt" data-i18n="panel_add_title">Добавить на холст</div>
         <div class="palette" id="palette">
-          <button class="palette-btn" data-type="title">🔠 Заголовок</button>
-          <button class="palette-btn" data-type="text">📝 Текст</button>
-          <button class="palette-btn" data-type="button">🔘 Кнопка</button>
-          <button class="palette-btn" data-type="input">⌨️ Поле ввода</button>
-          <button class="palette-btn" data-type="image">🖼️ Картинка</button>
-          <button class="palette-btn" data-type="divider">➖ Разделитель</button>
+          <button class="palette-btn" data-type="title">🔠 <span data-i18n="el_title">Заголовок</span></button>
+          <button class="palette-btn" data-type="text">📝 <span data-i18n="el_text">Текст</span></button>
+          <button class="palette-btn" data-type="button">🔘 <span data-i18n="el_button">Кнопка</span></button>
+          <button class="palette-btn" data-type="input">⌨️ <span data-i18n="el_input">Поле ввода</span></button>
+          <button class="palette-btn" data-type="image">🖼️ <span data-i18n="el_image">Картинка</span></button>
+          <button class="palette-btn" data-type="divider">➖ <span data-i18n="el_divider">Разделитель</span></button>
         </div>
-        <div class="small-note">Элемент можно перетащить мышкой по холсту, а за края/уголок — изменить его ширину, высоту или оба размера сразу.</div>
+        <div class="small-note" data-i18n="canvas_hint">Элемент можно перетащить мышкой (или пальцем на телефоне) по холсту, а за края/уголок — изменить его ширину, высоту или оба размера сразу.</div>
       </div>
 
       <!-- --- МЕДИА --- -->
       <div class="tab-pane" id="tab-media" style="display:none">
-        <div class="panel-title">Медиафайлы</div>
-        <label class="add-btn" for="fileUploadAssets" style="display:block;text-align:center;cursor:pointer;">+ загрузить картинку</label>
+        <div class="panel-title" data-i18n="panel_media_title">Медиафайлы</div>
+        <label class="add-btn" for="fileUploadAssets" style="display:block;text-align:center;cursor:pointer;" data-i18n="btn_upload">+ загрузить картинку</label>
         <input type="file" id="fileUploadAssets" accept="image/*" multiple hidden>
         <div id="assetsList" style="margin-top:12px;"></div>
-        <div class="small-note">Загруженный файл можно переименовать, изменить (заменить содержимое), переместить в списке, скачать, скопировать или удалить. Используйте его в элементе «Картинка» справа.</div>
+        <div class="small-note" data-i18n="media_hint">Загруженный файл можно переименовать, изменить (заменить содержимое), переместить в списке, скачать, скопировать или удалить. Используйте его в элементе «Картинка» справа.</div>
       </div>
 
       <!-- --- ПЕРЕМЕННЫЕ --- -->
       <div class="tab-pane" id="tab-vars" style="display:none">
-        <div class="panel-title">Переменные</div>
+        <div class="panel-title" data-i18n="tab_vars">Переменные</div>
         <div id="varsList"></div>
-        <button class="add-btn" id="btnAddVar">+ добавить переменную</button>
-        <div class="small-note">Переменные хранят значения (например, из полей ввода или вычислений) и используются в условиях «если / то / иначе» и в шаблонах Telegram-сообщений.</div>
+        <button class="add-btn" id="btnAddVar" data-i18n="btn_add_var">+ добавить переменную</button>
+        <div class="small-note" data-i18n="vars_hint">Переменные хранят значения (например, из полей ввода или вычислений) и используются в условиях «если / то / иначе» и в шаблонах Telegram-сообщений.</div>
       </div>
 
       <!-- --- TELEGRAM --- -->
       <div class="tab-pane" id="tab-tg" style="display:none">
         <div class="panel-title">Telegram-бот</div>
         <div class="field">
-          <label>Токен бота</label>
+          <label data-i18n="label_bot_token">Токен бота</label>
           <input type="text" id="tgToken" placeholder="123456789:AA...">
         </div>
         <div class="field">
-          <label>Кому отправлять</label>
+          <label data-i18n="label_recipient">Кому отправлять</label>
           <select id="tgMode">
-            <option value="chat">В чат / канал / тему</option>
-            <option value="dm">Мне в личные сообщения (ЛС)</option>
+            <option value="chat" data-i18n="opt_chat">В чат / канал / тему</option>
+            <option value="dm" data-i18n="opt_dm">Мне в личные сообщения (ЛС)</option>
           </select>
         </div>
         <div class="field" id="tgChatWrap">
-          <label>Chat ID</label>
+          <label data-i18n="label_chat_id">Chat ID</label>
           <input type="text" id="tgChat" placeholder="-100123456789">
         </div>
         <div class="field" id="tgThreadWrap">
-          <label>Thread / Topic ID (необязательно)</label>
+          <label data-i18n="label_thread_id">Thread / Topic ID (необязательно)</label>
           <input type="text" id="tgThread" placeholder="например 14">
         </div>
         <div class="field" id="tgUserWrap" style="display:none">
-          <label>Ваш Telegram ID</label>
+          <label data-i18n="label_user_id">Ваш Telegram ID</label>
           <input type="text" id="tgUserId" placeholder="например 123456789">
-          <div class="field-hint">Узнать свой ID можно у бота @userinfobot. Бот сможет писать вам в ЛС, только если вы сами хотя бы раз напишете ему первым (например «/start») — так устроен Telegram.</div>
+          <div class="field-hint" data-i18n="hint_user_id">Узнать свой ID можно у бота @userinfobot. Бот сможет писать вам в ЛС только после того, как вы сами хоть раз напишете ему первым (например «/start») — так устроен Telegram.</div>
         </div>
-        <div class="small-note">Кнопке назначьте действие «Отправить в Telegram» справа в свойствах. Важно: в статичном сайте токен виден в исходном коде страницы — не выдавайте боту прав больше необходимого.</div>
+        <div class="small-note" data-i18n="tg_hint">Кнопке назначьте действие «Отправить в Telegram» справа в свойствах. Важно: в статичном сайте токен виден в исходном коде страницы — не выдавайте боту прав больше необходимого.</div>
       </div>
 
     </aside>
 
     <!-- ===== ЦЕНТР: СВОБОДНЫЙ ХОЛСТ ===== -->
-    <main class="canvas-wrap">
+    <main class="canvas-wrap" id="canvasWrap">
       <div class="canvas-toolbar">
         <span id="activeScreenLabel">—</span>
-        <button class="tbtn small" id="btnPreview">▶️ Предпросмотр (в новой вкладке)</button>
       </div>
       <div class="site-canvas" id="phoneScreen"></div>
     </main>
@@ -119,11 +152,18 @@
     <!-- ===== ПРАВАЯ ПАНЕЛЬ: СВОЙСТВА ===== -->
     <aside class="panel panel-props" id="propsPanel">
       <div class="panel-title">Свойства</div>
-      <div class="props-empty" id="propsEmpty">Выберите экран или элемент, чтобы настроить его здесь.</div>
+      <div class="props-empty" id="propsEmpty" data-i18n="props_empty">Выберите экран или элемент, чтобы настроить его здесь.</div>
       <div id="propsContent"></div>
     </aside>
 
   </div>
+
+  <!-- ===== НИЖНЯЯ ПАНЕЛЬ (только на телефоне) ===== -->
+  <nav class="mobile-tabbar" id="mobileTabbar">
+    <button class="mtab active" data-view="screens">🧩<span data-i18n="mtab_screens">Экраны</span></button>
+    <button class="mtab" data-view="canvas">🖼️<span data-i18n="mtab_canvas">Холст</span></button>
+    <button class="mtab" data-view="props">⚙️<span data-i18n="mtab_props">Свойства</span></button>
+  </nav>
 </div>
 
 <script src="js/app.js"></script>
