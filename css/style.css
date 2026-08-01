@@ -201,4 +201,4 @@ body.device-mobile .el-controls button { padding: 6px 9px; font-size: 12px; }
 @media (max-width: 940px) {
   .workarea { grid-template-columns: 1fr; grid-auto-rows: auto; }
   .panel, .panel-props { border: none; border-bottom: 1px solid var(--line); max-height: 320px; }
-                }
+  }
