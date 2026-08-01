@@ -1,43 +1,214 @@
 /* =====================================================================
    SITE BUILDER by ForceNet
-   Свободный холст: элементы перетаскиваются и меняют размер мышкой.
-   Стили с градиентами и палитрой сохранённых цветов, шрифты и начертание,
-   условная логика если/то/иначе/или, вычисления, медиафайлы,
-   интеграция с Telegram (чат или личные сообщения).
+   Свободный холст с поддержкой мыши и тач-жестов, меню-гамбургер,
+   переключение языка интерфейса (RU/EN), выбор устройства (компьютер/
+   телефон) с адаптацией раскладки, стили с градиентами и палитрой,
+   шрифты и начертание, условная логика если/то/иначе/или, вычисления,
+   медиафайлы, интеграция с Telegram (чат или личные сообщения).
    ===================================================================== */
 
 const STORAGE_KEY = 'nocode_site_builder_project_v2';
+const LANG_KEY = 'nocode_site_builder_lang';
+const DEVICE_KEY = 'nocode_site_builder_device';
 const CANVAS_SIZE = { width: 390, height: 700 };
 
-const OPERATORS = [
-  { value: 'eq', label: 'равно' },
-  { value: 'neq', label: 'не равно' },
-  { value: 'contains', label: 'содержит' },
-  { value: 'gt', label: 'больше' },
-  { value: 'lt', label: 'меньше' },
-  { value: 'empty', label: 'пусто' },
-  { value: 'notEmpty', label: 'не пусто' }
-];
+// =====================================================================
+// ПЕРЕВОДЫ (RU / EN)
+// =====================================================================
+const STRINGS = {
+  ru: {
+    menu_clear: 'Очистить', menu_save: 'Сохранить проект', menu_open: 'Открыть файл',
+    menu_export: 'Экспорт сайта (.html)', menu_preview: 'Предпросмотр',
+    menu_language: 'Язык', menu_device: 'Устройство',
+    tab_screens: 'Экраны', tab_media: 'Медиа', tab_vars: 'Переменные', tab_tg: 'Telegram',
+    panel_screens_title: 'Экраны', btn_add_screen: '+ добавить экран', panel_add_title: 'Добавить на холст',
+    el_title: 'Заголовок', el_text: 'Текст', el_button: 'Кнопка', el_input: 'Поле ввода', el_image: 'Картинка', el_divider: 'Разделитель',
+    canvas_hint: 'Элемент можно перетащить мышкой (или пальцем на телефоне) по холсту, а за края/уголок — изменить его ширину, высоту или оба размера сразу.',
+    panel_media_title: 'Медиафайлы', btn_upload: '+ загрузить картинку',
+    media_hint: 'Загруженный файл можно переименовать, изменить (заменить содержимое), переместить в списке, скачать, скопировать или удалить. Используйте его в элементе «Картинка» справа.',
+    asset_none: 'Файлов пока нет. Загрузите картинку кнопкой выше.',
+    vars_hint: 'Переменные хранят значения (например, из полей ввода или вычислений) и используются в условиях «если / то / иначе» и в шаблонах Telegram-сообщений.',
+    vars_none: 'Переменных пока нет.',
+    label_bot_token: 'Токен бота', label_recipient: 'Кому отправлять',
+    opt_chat: 'В чат / канал / тему', opt_dm: 'Мне в личные сообщения (ЛС)',
+    label_chat_id: 'Chat ID', label_thread_id: 'Thread / Topic ID (необязательно)', label_user_id: 'Ваш Telegram ID',
+    hint_user_id: 'Узнать свой ID можно у бота @userinfobot. Бот сможет писать вам в ЛС только после того, как вы сами хоть раз напишете ему первым (например «/start») — так устроен Telegram.',
+    tg_hint: 'Кнопке назначьте действие «Отправить в Telegram» справа в свойствах. Важно: в статичном сайте токен виден в исходном коде страницы — не выдавайте боту прав больше необходимого.',
+    props_empty: 'Выберите экран или элемент, чтобы настроить его здесь.',
+    label_screen_name: 'Название экрана', section_screen_bg: 'Фон экрана',
+    section_about_project: 'О проекте', label_site_title: 'Название сайта',
+    hint_site_title: 'Заголовок вкладки браузера в экспортированном сайте.',
+    label_text: 'Текст', label_button_text: 'Текст на кнопке',
+    label_field_label: 'Подпись над полем', label_placeholder: 'Текст-подсказка внутри поля',
+    label_bind_var: 'Сохранять значение в переменную', opt_none_bind: '— не привязано —',
+    label_image_pick: 'Картинка', opt_placeholder_img: '— плейсхолдер (без картинки) —',
+    hint_media_tab: 'Файлы загружаются во вкладке «Медиа» слева.',
+    label_placeholder_caption: 'Подпись плейсхолдера (если картинка не выбрана)',
+    section_font: 'Шрифт и стиль текста', label_font: 'Шрифт',
+    font_default: 'Обычный (по умолчанию)', font_georgia: 'Georgia (с засечками)', font_times: 'Times New Roman',
+    font_courier: 'Courier New (моно)', font_trebuchet: 'Trebuchet MS', font_verdana: 'Verdana',
+    font_arial: 'Arial', font_impact: 'Impact (акцент)',
+    tt_bold: 'Жирный', tt_italic: 'Курсив', tt_underline: 'Подчёркнутый', tt_strike: 'Зачёркнутый',
+    section_text_color: 'Цвет текста', section_bg: 'Фон элемента', section_divider_color: 'Цвет разделителя',
+    label_radius: 'Скругление углов (px)', label_radius_edge: 'Скругление краёв (px)',
+    divider_resize_hint: 'Ширину и толщину меняйте, перетаскивая за края/уголок прямо на холсте.',
+    section_action: 'Действие кнопки', section_visibility: 'Видимость',
+    chk_fill: 'Заливка фона', mode_solid: 'Сплошной', mode_gradient: 'Градиент', label_angle: 'угол',
+    swatch_title: 'Применить этот цвет',
+    chk_show_by_cond: 'Показывать по условию', label_logic: 'Логика между условиями',
+    logic_and: 'Все условия верны (И)', logic_or: 'Хотя бы одно верно (ИЛИ)', btn_add_rule: '+ добавить условие',
+    cond_hint: 'Если условие не выполняется — элемент скрыт (это и есть «иначе»). Работает в предпросмотре и в экспортированном сайте, не в этом редакторе.',
+    op_eq: 'равно', op_neq: 'не равно', op_contains: 'содержит', op_gt: 'больше', op_lt: 'меньше', op_empty: 'пусто', op_notEmpty: 'не пусто',
+    rule_value_ph: 'значение', rules_none: 'Нет переменных. Добавьте их во вкладке «Переменные» слева.',
+    act_goto: 'Перейти на экран', act_link: 'Открыть ссылку', act_alert: 'Показать сообщение',
+    act_setVar: 'Установить переменную', act_compute: 'Вычислить (математика/логика)',
+    act_telegram: 'Отправить в Telegram', act_condition: 'Условие (если / то / иначе)',
+    label_action: 'Действие', label_screen: 'Экран', label_link: 'Ссылка', label_message_text: 'Текст сообщения',
+    label_variable: 'Переменная', label_new_value: 'Новое значение',
+    vars_none_add: 'Сначала добавьте переменную во вкладке «Переменные» слева.',
+    label_write_result_to: 'Записать результат в переменную', label_expression: 'Выражение',
+    hint_expression: 'Операторы: + − * / % ( ). Сравнения: > < >= <= == !=. Логика: && || !. Переменные — в фигурных скобках, например {очки}.',
+    label_message_template: 'Шаблон сообщения',
+    hint_tg_template: 'Можно вставлять {ИмяПеременной} — подставится текущее значение. Получатель настраивается во вкладке «Telegram» слева.',
+    label_condition_then: 'Если верно →', label_condition_else: 'Иначе →',
+    prompt_new_screen_name: 'Название нового экрана:', default_new_screen_name: 'Новый экран',
+    confirm_delete_last_screen: 'Нельзя удалить последний экран — в сайте должен остаться хотя бы один.',
+    confirm_delete_screen: 'Удалить этот экран вместе со всеми элементами на нём?',
+    confirm_delete_var: 'Удалить переменную «{name}»?',
+    confirm_delete_asset: 'Удалить файл «{name}»? Если он используется как картинка на экране, там появится плейсхолдер.',
+    alert_project_loaded: '✅ Проект загружен',
+    alert_project_load_failed: '❌ Не удалось прочитать файл проекта: похоже, это не тот формат.',
+    confirm_new_project: 'Создать новый проект? Текущий будет заменён в редакторе (сохранённые файлы project.json это не затронет).',
+    alert_dangling_goto_target: 'Экран назначения был удалён',
+    default_condition_true_msg: 'Условие верно', default_condition_false_msg: 'Условие неверно',
+    default_button_text_new: 'Кнопка', default_alert_msg: 'Сообщение',
+    default_title_text: 'Заголовок', default_text_block: 'Текстовый блок. Напишите здесь любой текст.',
+    default_input_label: 'Подпись поля', default_input_placeholder: 'введите текст', default_image_label: 'Изображение',
+    new_project_default_title: 'Мой сайт', new_project_screen_name: 'Главная',
+    new_project_welcome_title: 'Добро пожаловать',
+    new_project_welcome_text: 'Это стартовый экран. Перетаскивайте и растягивайте элементы прямо на холсте — код писать не нужно.',
+    new_project_button_text: 'Нажми меня', new_project_telegram_default: 'Новое сообщение с сайта',
+    empty_hint_canvas: 'Холст пуст. Добавьте элементы из левой панели «Добавить на холст».',
+    device_prompt_title: 'Как вы заходите?',
+    device_prompt_sub: 'Интерфейс подстроится под выбранное устройство. Это можно поменять позже в меню ☰.',
+    device_desktop: 'Компьютер', device_mobile: 'Телефон',
+    mtab_screens: 'Экраны', mtab_canvas: 'Холст', mtab_props: 'Свойства',
+    var_name_ph: 'имя', var_value_ph: 'начальное значение', var_default_name: 'переменная'
+  },
+  en: {
+    menu_clear: 'Clear', menu_save: 'Save project', menu_open: 'Open file',
+    menu_export: 'Export site (.html)', menu_preview: 'Preview',
+    menu_language: 'Language', menu_device: 'Device',
+    tab_screens: 'Screens', tab_media: 'Media', tab_vars: 'Variables', tab_tg: 'Telegram',
+    panel_screens_title: 'Screens', btn_add_screen: '+ add screen', panel_add_title: 'Add to canvas',
+    el_title: 'Title', el_text: 'Text', el_button: 'Button', el_input: 'Input field', el_image: 'Image', el_divider: 'Divider',
+    canvas_hint: 'Drag an element with your mouse (or finger on a phone) across the canvas, and use the edge/corner handles to resize width, height, or both at once.',
+    panel_media_title: 'Media files', btn_upload: '+ upload image',
+    media_hint: 'An uploaded file can be renamed, replaced, reordered, downloaded, duplicated, or deleted. Use it in the “Image” element on the right.',
+    asset_none: 'No files yet. Upload an image with the button above.',
+    vars_hint: 'Variables store values (e.g. from input fields or calculations) and are used in “if / then / else” conditions and Telegram message templates.',
+    vars_none: 'No variables yet.',
+    label_bot_token: 'Bot token', label_recipient: 'Send to',
+    opt_chat: 'Chat / channel / topic', opt_dm: 'My direct messages (DM)',
+    label_chat_id: 'Chat ID', label_thread_id: 'Thread / Topic ID (optional)', label_user_id: 'Your Telegram ID',
+    hint_user_id: 'You can find your ID via the @userinfobot bot. The bot can only DM you after you message it first (e.g. “/start”) — that’s how Telegram works.',
+    tg_hint: 'Assign the “Send to Telegram” action to a button in the properties panel on the right. Important: in a static site the token is visible in the page source — don’t grant the bot more rights than necessary.',
+    props_empty: 'Select a screen or element to configure it here.',
+    label_screen_name: 'Screen name', section_screen_bg: 'Screen background',
+    section_about_project: 'About the project', label_site_title: 'Site title',
+    hint_site_title: 'Browser tab title in the exported site.',
+    label_text: 'Text', label_button_text: 'Button text',
+    label_field_label: 'Label above the field', label_placeholder: 'Placeholder text inside the field',
+    label_bind_var: 'Save value to variable', opt_none_bind: '— not linked —',
+    label_image_pick: 'Image', opt_placeholder_img: '— placeholder (no image) —',
+    hint_media_tab: 'Files are uploaded in the “Media” tab on the left.',
+    label_placeholder_caption: 'Placeholder caption (if no image selected)',
+    section_font: 'Font and text style', label_font: 'Font',
+    font_default: 'Default', font_georgia: 'Georgia (serif)', font_times: 'Times New Roman',
+    font_courier: 'Courier New (monospace)', font_trebuchet: 'Trebuchet MS', font_verdana: 'Verdana',
+    font_arial: 'Arial', font_impact: 'Impact (bold accent)',
+    tt_bold: 'Bold', tt_italic: 'Italic', tt_underline: 'Underline', tt_strike: 'Strikethrough',
+    section_text_color: 'Text color', section_bg: 'Element background', section_divider_color: 'Divider color',
+    label_radius: 'Corner radius (px)', label_radius_edge: 'Edge radius (px)',
+    divider_resize_hint: 'Change width and thickness by dragging the edges/corner right on the canvas.',
+    section_action: 'Button action', section_visibility: 'Visibility',
+    chk_fill: 'Background fill', mode_solid: 'Solid', mode_gradient: 'Gradient', label_angle: 'angle',
+    swatch_title: 'Apply this color',
+    chk_show_by_cond: 'Show conditionally', label_logic: 'Logic between conditions',
+    logic_and: 'All conditions true (AND)', logic_or: 'At least one true (OR)', btn_add_rule: '+ add condition',
+    cond_hint: 'If the condition is false, the element is hidden (that’s the “else”). Works in preview and in the exported site, not in this editor.',
+    op_eq: 'equals', op_neq: 'not equal', op_contains: 'contains', op_gt: 'greater than', op_lt: 'less than', op_empty: 'empty', op_notEmpty: 'not empty',
+    rule_value_ph: 'value', rules_none: 'No variables. Add them in the “Variables” tab on the left.',
+    act_goto: 'Go to screen', act_link: 'Open link', act_alert: 'Show message',
+    act_setVar: 'Set variable', act_compute: 'Compute (math/logic)',
+    act_telegram: 'Send to Telegram', act_condition: 'Condition (if / then / else)',
+    label_action: 'Action', label_screen: 'Screen', label_link: 'Link', label_message_text: 'Message text',
+    label_variable: 'Variable', label_new_value: 'New value',
+    vars_none_add: 'First add a variable in the “Variables” tab on the left.',
+    label_write_result_to: 'Write result to variable', label_expression: 'Expression',
+    hint_expression: 'Operators: + − * / % ( ). Comparisons: > < >= <= == !=. Logic: && || !. Variables go in curly braces, e.g. {score}.',
+    label_message_template: 'Message template',
+    hint_tg_template: 'You can insert {VariableName} — it will be replaced with the current value. The recipient is set in the “Telegram” tab on the left.',
+    label_condition_then: 'If true →', label_condition_else: 'Otherwise →',
+    prompt_new_screen_name: 'New screen name:', default_new_screen_name: 'New screen',
+    confirm_delete_last_screen: 'You can’t delete the last screen — at least one must remain.',
+    confirm_delete_screen: 'Delete this screen along with all its elements?',
+    confirm_delete_var: 'Delete variable “{name}”?',
+    confirm_delete_asset: 'Delete file “{name}”? If it’s used as an image on a screen, a placeholder will appear there.',
+    alert_project_loaded: '✅ Project loaded',
+    alert_project_load_failed: '❌ Couldn’t read the project file: this doesn’t look like the right format.',
+    confirm_new_project: 'Start a new project? The current one will be replaced in the editor (saved project.json files are unaffected).',
+    alert_dangling_goto_target: 'Destination screen was deleted',
+    default_condition_true_msg: 'Condition is true', default_condition_false_msg: 'Condition is false',
+    default_button_text_new: 'Button', default_alert_msg: 'Message',
+    default_title_text: 'Title', default_text_block: 'Text block. Write anything here.',
+    default_input_label: 'Field label', default_input_placeholder: 'enter text', default_image_label: 'Image',
+    new_project_default_title: 'My site', new_project_screen_name: 'Home',
+    new_project_welcome_title: 'Welcome',
+    new_project_welcome_text: 'This is the starting screen. Drag and resize elements right on the canvas — no code required.',
+    new_project_button_text: 'Click me', new_project_telegram_default: 'New message from the site',
+    empty_hint_canvas: 'Canvas is empty. Add elements from the left panel “Add to canvas”.',
+    device_prompt_title: 'How are you accessing this?',
+    device_prompt_sub: 'The interface will adapt to your device. You can change this later in the ☰ menu.',
+    device_desktop: 'Computer', device_mobile: 'Phone',
+    mtab_screens: 'Screens', mtab_canvas: 'Canvas', mtab_props: 'Properties',
+    var_name_ph: 'name', var_value_ph: 'initial value', var_default_name: 'variable'
+  }
+};
+let currentLang = (localStorage.getItem(LANG_KEY) === 'en') ? 'en' : 'ru';
+function T(key) { return (STRINGS[currentLang] && STRINGS[currentLang][key]) || STRINGS.ru[key] || key; }
+function Tf(key, params) {
+  let s = T(key);
+  Object.keys(params || {}).forEach(k => { s = s.split('{' + k + '}').join(params[k]); });
+  return s;
+}
+function translateStaticUI() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T(el.dataset.i18n); });
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('.menu-choice-btn[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
+}
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  translateStaticUI();
+  renderAll();
+}
 
-const ACTION_KINDS = [
-  { value: 'goto', label: 'Перейти на экран' },
-  { value: 'link', label: 'Открыть ссылку' },
-  { value: 'alert', label: 'Показать сообщение' },
-  { value: 'setVar', label: 'Установить переменную' },
-  { value: 'compute', label: 'Вычислить (математика/логика)' },
-  { value: 'telegram', label: 'Отправить в Telegram' },
-  { value: 'condition', label: 'Условие (если / то / иначе)' }
-];
+const OPERATOR_KEYS = ['eq', 'neq', 'contains', 'gt', 'lt', 'empty', 'notEmpty'];
+function operatorLabel(op) { return T('op_' + op); }
 
-const FONT_OPTIONS = [
-  { value: '', label: 'Обычный (по умолчанию)' },
-  { value: "'Georgia', serif", label: 'Georgia (с засечками)' },
-  { value: "'Times New Roman', serif", label: 'Times New Roman' },
-  { value: "'Courier New', monospace", label: 'Courier New (моно)' },
-  { value: "'Trebuchet MS', sans-serif", label: 'Trebuchet MS' },
-  { value: "'Verdana', sans-serif", label: 'Verdana' },
-  { value: "'Arial', sans-serif", label: 'Arial' },
-  { value: "'Impact', sans-serif", label: 'Impact (акцент)' }
+const ACTION_KIND_KEYS = ['goto', 'link', 'alert', 'setVar', 'compute', 'telegram', 'condition'];
+function actionKindLabel(k) { return T('act_' + k); }
+
+const FONT_VALUES = [
+  { value: '', key: 'font_default' },
+  { value: "'Georgia', serif", key: 'font_georgia' },
+  { value: "'Times New Roman', serif", key: 'font_times' },
+  { value: "'Courier New', monospace", key: 'font_courier' },
+  { value: "'Trebuchet MS', sans-serif", key: 'font_trebuchet' },
+  { value: "'Verdana', sans-serif", key: 'font_verdana' },
+  { value: "'Arial', sans-serif", key: 'font_arial' },
+  { value: "'Impact', sans-serif", key: 'font_impact' }
 ];
 
 let project = null;
@@ -87,7 +258,6 @@ function fontCSSDecl(font) {
   return decl;
 }
 
-// ---------- палитра сохранённых цветов ----------
 function paletteMatches(p, style) {
   return p.mode === style.mode && p.color1 === style.color1 && (style.mode !== 'gradient' || (p.color2 === style.color2 && p.angle === style.angle));
 }
@@ -145,20 +315,20 @@ function defaultActionOfKind(kind) {
     case 'link': return { kind: 'link', target: 'https://' };
     case 'setVar': return { kind: 'setVar', varId: (project && project.variables[0] && project.variables[0].id) || '', value: '' };
     case 'compute': return { kind: 'compute', varId: (project && project.variables[0] && project.variables[0].id) || '', expression: '' };
-    case 'telegram': return { kind: 'telegram', template: 'Новое сообщение с сайта' };
-    case 'condition': return { kind: 'condition', logic: 'AND', rules: [], thenAction: { kind: 'alert', target: 'Условие верно' }, elseAction: { kind: 'alert', target: 'Условие неверно' } };
+    case 'telegram': return { kind: 'telegram', template: T('new_project_telegram_default') };
+    case 'condition': return { kind: 'condition', logic: 'AND', rules: [], thenAction: { kind: 'alert', target: T('default_condition_true_msg') }, elseAction: { kind: 'alert', target: T('default_condition_false_msg') } };
     case 'alert':
-    default: return { kind: 'alert', target: 'Сообщение' };
+    default: return { kind: 'alert', target: T('default_alert_msg') };
   }
 }
 
 function defaultPropsFor(type) {
   switch (type) {
-    case 'title': return { text: 'Заголовок' };
-    case 'text': return { text: 'Текстовый блок. Напишите здесь любой текст.' };
-    case 'button': return { text: 'Кнопка', action: defaultActionOfKind('alert') };
-    case 'input': return { label: 'Подпись поля', placeholder: 'введите текст', varId: '' };
-    case 'image': return { label: 'Изображение', assetId: '' };
+    case 'title': return { text: T('default_title_text') };
+    case 'text': return { text: T('default_text_block') };
+    case 'button': return { text: T('default_button_text_new'), action: defaultActionOfKind('alert') };
+    case 'input': return { label: T('default_input_label'), placeholder: T('default_input_placeholder'), varId: '' };
+    case 'image': return { label: T('default_image_label'), assetId: '' };
     case 'divider': return {};
     default: return {};
   }
@@ -167,7 +337,7 @@ function defaultPropsFor(type) {
 function defaultProject() {
   const screenId = uid('scr');
   return {
-    title: 'Мой сайт',
+    title: T('new_project_default_title'),
     variables: [],
     assets: [],
     colorPalette: [],
@@ -176,12 +346,12 @@ function defaultProject() {
     screens: [
       {
         id: screenId,
-        name: 'Главная',
+        name: T('new_project_screen_name'),
         background: defaultBackground(),
         elements: [
-          { id: uid('el'), type: 'title', props: { text: 'Добро пожаловать' }, style: { ...defaultStyleFor('title'), pos: { x: 20, y: 20 } }, condition: defaultCondition() },
-          { id: uid('el'), type: 'text', props: { text: 'Это стартовый экран. Перетаскивайте и растягивайте элементы прямо на холсте — код писать не нужно.' }, style: { ...defaultStyleFor('text'), pos: { x: 20, y: 80 } }, condition: defaultCondition() },
-          { id: uid('el'), type: 'button', props: { text: 'Нажми меня', action: defaultActionOfKind('alert') }, style: { ...defaultStyleFor('button'), pos: { x: 20, y: 180 } }, condition: defaultCondition() }
+          { id: uid('el'), type: 'title', props: { text: T('new_project_welcome_title') }, style: { ...defaultStyleFor('title'), pos: { x: 20, y: 20 } }, condition: defaultCondition() },
+          { id: uid('el'), type: 'text', props: { text: T('new_project_welcome_text') }, style: { ...defaultStyleFor('text'), pos: { x: 20, y: 80 } }, condition: defaultCondition() },
+          { id: uid('el'), type: 'button', props: { text: T('new_project_button_text'), action: defaultActionOfKind('alert') }, style: { ...defaultStyleFor('button'), pos: { x: 20, y: 180 } }, condition: defaultCondition() }
         ]
       }
     ]
@@ -189,7 +359,7 @@ function defaultProject() {
 }
 
 function migrateProject(p) {
-  p.title = p.title || 'Мой сайт';
+  p.title = p.title || 'Site';
   p.variables = Array.isArray(p.variables) ? p.variables : [];
   p.assets = Array.isArray(p.assets) ? p.assets : [];
   p.colorPalette = Array.isArray(p.colorPalette) ? p.colorPalette : [];
@@ -206,7 +376,6 @@ function migrateProject(p) {
     scr.elements.forEach((el, idx) => {
       el.style = el.style || defaultStyleFor(el.type);
       if (!el.style.pos) {
-        // старый формат без позиции: раскладываем каскадом сверху вниз
         const oldW = el.style.dividerWidth;
         const oldH = el.style.dividerHeight;
         el.style.pos = { x: 20, y: 20 + idx * 80 };
@@ -239,12 +408,62 @@ function loadFromStorage() {
   return null;
 }
 
+// =====================================================================
+// УСТРОЙСТВО (компьютер / телефон)
+// =====================================================================
+let mobileView = 'screens';
+function applyDeviceClass(device) {
+  document.body.classList.remove('device-desktop', 'device-mobile');
+  document.body.classList.add('device-' + device);
+  document.querySelectorAll('.menu-choice-btn[data-device]').forEach(b => b.classList.toggle('active', b.dataset.device === device));
+  if (device === 'mobile') setMobileView(mobileView);
+}
+function setMobileView(view) {
+  mobileView = view;
+  const wa = document.getElementById('workarea');
+  wa.classList.remove('view-screens', 'view-canvas', 'view-props');
+  wa.classList.add('view-' + view);
+  document.querySelectorAll('.mtab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+}
+function initDevice() {
+  const modal = document.getElementById('deviceModal');
+  const stored = localStorage.getItem(DEVICE_KEY);
+  if (stored === 'desktop' || stored === 'mobile') {
+    applyDeviceClass(stored);
+    modal.style.display = 'none';
+  } else {
+    modal.style.display = 'flex';
+  }
+  document.querySelectorAll('.device-choice-btn').forEach(btn => {
+    btn.onclick = () => {
+      const d = btn.dataset.device;
+      localStorage.setItem(DEVICE_KEY, d);
+      applyDeviceClass(d);
+      modal.style.display = 'none';
+    };
+  });
+  document.querySelectorAll('#deviceRow .menu-choice-btn').forEach(btn => {
+    btn.onclick = () => {
+      const d = btn.dataset.device;
+      localStorage.setItem(DEVICE_KEY, d);
+      applyDeviceClass(d);
+    };
+  });
+  document.getElementById('mobileTabbar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.mtab');
+    if (btn) setMobileView(btn.dataset.view);
+  });
+}
+
 function init() {
+  initDevice();
   const loaded = loadFromStorage();
   project = migrateProject(loaded || defaultProject());
   if (!getActiveScreen() && project.screens.length) project.activeScreenId = project.screens[0].id;
   selection = { kind: 'screen', screenId: project.activeScreenId, elementId: null };
   bindStaticUI();
+  translateStaticUI();
+  document.querySelectorAll('#langRow .menu-choice-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
   renderAll();
 }
 
@@ -266,7 +485,7 @@ function renderScreensList() {
   project.screens.forEach(scr => {
     const row = document.createElement('div');
     row.className = 'screen-row' + (scr.id === project.activeScreenId ? ' active' : '');
-    row.innerHTML = `<span class="name">${esc(scr.name)}</span><span class="del" title="Удалить экран">✕</span>`;
+    row.innerHTML = `<span class="name">${esc(scr.name)}</span><span class="del" title="✕">✕</span>`;
     row.querySelector('.name').onclick = () => {
       project.activeScreenId = scr.id;
       selection = { kind: 'screen', screenId: scr.id, elementId: null };
@@ -280,9 +499,9 @@ function renderScreensList() {
 }
 
 function addScreen() {
-  const name = prompt('Название нового экрана:', 'Новый экран');
+  const name = prompt(T('prompt_new_screen_name'), T('default_new_screen_name'));
   if (name === null) return;
-  const scr = { id: uid('scr'), name: name.trim() || 'Новый экран', background: defaultBackground(), elements: [] };
+  const scr = { id: uid('scr'), name: name.trim() || T('default_new_screen_name'), background: defaultBackground(), elements: [] };
   project.screens.push(scr);
   project.activeScreenId = scr.id;
   selection = { kind: 'screen', screenId: scr.id, elementId: null };
@@ -291,8 +510,8 @@ function addScreen() {
 }
 
 function deleteScreen(id) {
-  if (project.screens.length <= 1) { alert('Нельзя удалить последний экран — в сайте должен остаться хотя бы один.'); return; }
-  if (!confirm('Удалить этот экран вместе со всеми элементами на нём?')) return;
+  if (project.screens.length <= 1) { alert(T('confirm_delete_last_screen')); return; }
+  if (!confirm(T('confirm_delete_screen'))) return;
   project.screens = project.screens.filter(s => s.id !== id);
   project.screens.forEach(s => s.elements.forEach(el => { if (el.type === 'button') fixDanglingGoto(el.props.action, id); }));
   if (project.activeScreenId === id) project.activeScreenId = project.screens[0].id;
@@ -302,7 +521,7 @@ function deleteScreen(id) {
 }
 function fixDanglingGoto(action, deletedId) {
   if (!action) return;
-  if (action.kind === 'goto' && action.target === deletedId) { action.kind = 'alert'; action.target = 'Экран назначения был удалён'; }
+  if (action.kind === 'goto' && action.target === deletedId) { action.kind = 'alert'; action.target = T('alert_dangling_goto_target'); }
   if (action.kind === 'condition') { fixDanglingGoto(action.thenAction, deletedId); fixDanglingGoto(action.elseAction, deletedId); }
 }
 
@@ -342,11 +561,11 @@ function duplicateElement(screenId, elId) {
 }
 
 function elementLabel(type) {
-  return { title: 'Заголовок', text: 'Текст', button: 'Кнопка', input: 'Поле ввода', image: 'Картинка', divider: 'Разделитель' }[type] || type;
+  return { title: T('el_title'), text: T('el_text'), button: T('el_button'), input: T('el_input'), image: T('el_image'), divider: T('el_divider') }[type] || type;
 }
 
 // =====================================================================
-// ХОЛСТ: РЕНДЕР + ПЕРЕТАСКИВАНИЕ + РЕСАЙЗ
+// ХОЛСТ: РЕНДЕР + ПЕРЕТАСКИВАНИЕ + РЕСАЙЗ (мышь и тач через Pointer Events)
 // =====================================================================
 function renderCanvas() {
   const holder = document.getElementById('phoneScreen');
@@ -359,7 +578,7 @@ function renderCanvas() {
   if (scr.elements.length === 0) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
-    hint.textContent = 'Холст пуст. Добавьте элементы из левой панели «Добавить на холст».';
+    hint.textContent = T('empty_hint_canvas');
     holder.appendChild(hint);
     return;
   }
@@ -375,18 +594,18 @@ function renderCanvas() {
 
     wrap.innerHTML = `
       <div class="el-controls">
-        <button data-act="dup" title="Дублировать">⧉</button>
-        <button data-act="del" title="Удалить">✕</button>
+        <button data-act="dup" title="⧉">⧉</button>
+        <button data-act="del" title="✕">✕</button>
       </div>
-      <div class="rh rh-e" title="Изменить ширину"></div>
-      <div class="rh rh-s" title="Изменить высоту"></div>
-      <div class="rh rh-se" title="Изменить размер (сразу оба)"></div>
+      <div class="rh rh-e"></div>
+      <div class="rh rh-s"></div>
+      <div class="rh rh-se"></div>
     `;
     const content = renderElementPreview(el);
     content.classList.add('el-content');
     wrap.insertBefore(content, wrap.firstChild);
 
-    wrap.addEventListener('mousedown', (e) => {
+    wrap.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.rh') || e.target.closest('.el-controls')) return;
       selectElementSoft(scr.id, el.id, wrap);
       startDrag(e, wrap, el);
@@ -410,43 +629,51 @@ function selectElementSoft(screenId, elId, wrapEl) {
 
 function startDrag(e, wrapEl, el) {
   e.preventDefault();
+  try { wrapEl.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   const startX = e.clientX, startY = e.clientY;
   const origX = el.style.pos.x, origY = el.style.pos.y;
   function onMove(ev) {
+    if (ev.pointerId !== e.pointerId) return;
     el.style.pos.x = Math.max(0, origX + (ev.clientX - startX));
     el.style.pos.y = Math.max(0, origY + (ev.clientY - startY));
     wrapEl.style.left = el.style.pos.x + 'px';
     wrapEl.style.top = el.style.pos.y + 'px';
   }
   function onUp() {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
+    wrapEl.removeEventListener('pointermove', onMove);
+    wrapEl.removeEventListener('pointerup', onUp);
+    wrapEl.removeEventListener('pointercancel', onUp);
     persist();
   }
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
+  wrapEl.addEventListener('pointermove', onMove);
+  wrapEl.addEventListener('pointerup', onUp);
+  wrapEl.addEventListener('pointercancel', onUp);
 }
 
 function startResize(handleEl, el, mode) {
   if (!handleEl) return;
-  handleEl.addEventListener('mousedown', (e) => {
+  handleEl.addEventListener('pointerdown', (e) => {
     e.stopPropagation(); e.preventDefault();
     const wrapEl = handleEl.parentElement;
+    try { handleEl.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     const startX = e.clientX, startY = e.clientY;
     const origW = el.style.size.width, origH = el.style.size.height;
     function onMove(ev) {
+      if (ev.pointerId !== e.pointerId) return;
       if (mode === 'e' || mode === 'se') el.style.size.width = Math.max(24, origW + (ev.clientX - startX));
       if (mode === 's' || mode === 'se') el.style.size.height = Math.max(16, origH + (ev.clientY - startY));
       wrapEl.style.width = el.style.size.width + 'px';
       wrapEl.style.height = el.style.size.height + 'px';
     }
     function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      handleEl.removeEventListener('pointermove', onMove);
+      handleEl.removeEventListener('pointerup', onUp);
+      handleEl.removeEventListener('pointercancel', onUp);
       persist();
     }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    handleEl.addEventListener('pointermove', onMove);
+    handleEl.addEventListener('pointerup', onUp);
+    handleEl.addEventListener('pointercancel', onUp);
   });
 }
 
@@ -507,17 +734,17 @@ function renderElementPreview(el) {
 function colorEditorHTML(idPrefix, style, showEnable) {
   const isGrad = style.mode === 'gradient';
   return `
-    ${showEnable ? `<label class="chk-row"><input type="checkbox" id="${idPrefix}_en" ${style.enabled ? 'checked' : ''}> Заливка фона</label>` : ''}
+    ${showEnable ? `<label class="chk-row"><input type="checkbox" id="${idPrefix}_en" ${style.enabled ? 'checked' : ''}> ${T('chk_fill')}</label>` : ''}
     <div class="color-mode-toggle" id="${idPrefix}_modes">
-      <button type="button" data-mode="solid" class="${!isGrad ? 'active' : ''}">Сплошной</button>
-      <button type="button" data-mode="gradient" class="${isGrad ? 'active' : ''}">Градиент</button>
+      <button type="button" data-mode="solid" class="${!isGrad ? 'active' : ''}">${T('mode_solid')}</button>
+      <button type="button" data-mode="gradient" class="${isGrad ? 'active' : ''}">${T('mode_gradient')}</button>
     </div>
     <div class="color-row">
       <input type="color" id="${idPrefix}_c1" value="${style.color1}">
       <input type="color" id="${idPrefix}_c2" value="${style.color2}" style="${isGrad ? '' : 'display:none'}">
     </div>
     <div class="range-row" id="${idPrefix}_angleRow" style="${isGrad ? '' : 'display:none'}">
-      <span class="field-hint" style="margin:0;white-space:nowrap;">угол</span>
+      <span class="field-hint" style="margin:0;white-space:nowrap;">${T('label_angle')}</span>
       <input type="range" id="${idPrefix}_angle" min="0" max="360" value="${style.angle}">
       <span class="range-val" id="${idPrefix}_angleVal">${style.angle}°</span>
     </div>
@@ -530,7 +757,7 @@ function renderSwatchRow(containerId, style) {
   if (project.colorPalette.length === 0) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = project.colorPalette.map(p => {
     const bg = p.mode === 'gradient' ? `linear-gradient(${p.angle}deg, ${p.color1}, ${p.color2})` : p.color1;
-    return `<div class="swatch" data-id="${p.id}" style="background:${bg};" title="Применить этот цвет"></div>`;
+    return `<div class="swatch" data-id="${p.id}" style="background:${bg};" title="${T('swatch_title')}"></div>`;
   }).join('');
   wrap.querySelectorAll('.swatch').forEach(sw => {
     sw.onclick = () => {
@@ -574,7 +801,7 @@ function bindColorEditor(idPrefix, style, showEnable) {
 function renderRulesList(container, owner) {
   container.innerHTML = '';
   if (project.variables.length === 0) {
-    container.innerHTML = '<div class="small-note">Нет переменных. Добавьте их во вкладке «Переменные» слева.</div>';
+    container.innerHTML = `<div class="small-note">${T('rules_none')}</div>`;
     return;
   }
   owner.rules.forEach(rule => {
@@ -583,8 +810,8 @@ function renderRulesList(container, owner) {
     const showValue = !['empty', 'notEmpty'].includes(rule.op);
     row.innerHTML = `
       <select class="rvar">${project.variables.map(v => `<option value="${v.id}" ${v.id === rule.varId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select>
-      <select class="rop">${OPERATORS.map(o => `<option value="${o.value}" ${o.value === rule.op ? 'selected' : ''}>${o.label}</option>`).join('')}</select>
-      <input type="text" class="rval" placeholder="значение" value="${esc(rule.value)}" style="${showValue ? '' : 'display:none'}">
+      <select class="rop">${OPERATOR_KEYS.map(o => `<option value="${o}" ${o === rule.op ? 'selected' : ''}>${operatorLabel(o)}</option>`).join('')}</select>
+      <input type="text" class="rval" placeholder="${T('rule_value_ph')}" value="${esc(rule.value)}" style="${showValue ? '' : 'display:none'}">
       <button class="del" type="button">✕</button>
     `;
     row.querySelector('.rvar').onchange = e => { rule.varId = e.target.value; persist(); };
@@ -599,18 +826,18 @@ function renderRulesList(container, owner) {
 
 function renderConditionEditor(container, cond) {
   container.innerHTML = `
-    <label class="chk-row"><input type="checkbox" id="condEnabled" ${cond.enabled ? 'checked' : ''}> Показывать по условию</label>
+    <label class="chk-row"><input type="checkbox" id="condEnabled" ${cond.enabled ? 'checked' : ''}> ${T('chk_show_by_cond')}</label>
     <div id="condBody" style="${cond.enabled ? '' : 'display:none'}">
       <div class="field">
-        <label>Логика между условиями</label>
+        <label>${T('label_logic')}</label>
         <select id="condLogic">
-          <option value="AND" ${cond.logic === 'AND' ? 'selected' : ''}>Все условия верны (И)</option>
-          <option value="OR" ${cond.logic === 'OR' ? 'selected' : ''}>Хотя бы одно верно (ИЛИ)</option>
+          <option value="AND" ${cond.logic === 'AND' ? 'selected' : ''}>${T('logic_and')}</option>
+          <option value="OR" ${cond.logic === 'OR' ? 'selected' : ''}>${T('logic_or')}</option>
         </select>
       </div>
       <div class="rules-list" id="condRules"></div>
-      <button type="button" class="add-btn" id="condAddRule">+ добавить условие</button>
-      <div class="small-note">Если условие не выполняется — элемент скрыт (это и есть «иначе»). Работает в предпросмотре и в экспортированном сайте, не в этом редакторе.</div>
+      <button type="button" class="add-btn" id="condAddRule">${T('btn_add_rule')}</button>
+      <div class="small-note">${T('cond_hint')}</div>
     </div>
   `;
   renderRulesList(document.getElementById('condRules'), cond);
@@ -626,43 +853,43 @@ function renderConditionEditor(container, cond) {
 // РЕДАКТОР ДЕЙСТВИЯ
 // =====================================================================
 function renderActionEditor(container, action, allowCondition) {
-  const kinds = allowCondition === false ? ACTION_KINDS.filter(k => k.value !== 'condition') : ACTION_KINDS;
-  container.innerHTML = `<div class="field"><label>Действие</label><select class="actKind">${kinds.map(k => `<option value="${k.value}" ${k.value === action.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select></div><div class="actBody"></div>`;
+  const kinds = allowCondition === false ? ACTION_KIND_KEYS.filter(k => k !== 'condition') : ACTION_KIND_KEYS;
+  container.innerHTML = `<div class="field"><label>${T('label_action')}</label><select class="actKind">${kinds.map(k => `<option value="${k}" ${k === action.kind ? 'selected' : ''}>${actionKindLabel(k)}</option>`).join('')}</select></div><div class="actBody"></div>`;
   const kindSel = container.querySelector('.actKind');
   const bodyWrap = container.querySelector('.actBody');
 
   function renderBody() {
     bodyWrap.innerHTML = '';
     if (action.kind === 'goto') {
-      bodyWrap.innerHTML = `<div class="field"><label>Экран</label><select class="actTarget">${project.screens.map(s => `<option value="${s.id}" ${s.id === action.target ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>`;
+      bodyWrap.innerHTML = `<div class="field"><label>${T('label_screen')}</label><select class="actTarget">${project.screens.map(s => `<option value="${s.id}" ${s.id === action.target ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>`;
       bodyWrap.querySelector('.actTarget').onchange = e => { action.target = e.target.value; persist(); };
     } else if (action.kind === 'link') {
-      bodyWrap.innerHTML = `<div class="field"><label>Ссылка</label><input type="text" class="actTarget" placeholder="https://example.com" value="${esc(action.target)}"></div>`;
+      bodyWrap.innerHTML = `<div class="field"><label>${T('label_link')}</label><input type="text" class="actTarget" placeholder="https://example.com" value="${esc(action.target)}"></div>`;
       bodyWrap.querySelector('.actTarget').oninput = e => { action.target = e.target.value; persist(); };
     } else if (action.kind === 'alert') {
-      bodyWrap.innerHTML = `<div class="field"><label>Текст сообщения</label><input type="text" class="actTarget" value="${esc(action.target)}"></div>`;
+      bodyWrap.innerHTML = `<div class="field"><label>${T('label_message_text')}</label><input type="text" class="actTarget" value="${esc(action.target)}"></div>`;
       bodyWrap.querySelector('.actTarget').oninput = e => { action.target = e.target.value; persist(); };
     } else if (action.kind === 'setVar') {
       if (project.variables.length === 0) {
-        bodyWrap.innerHTML = '<div class="small-note">Сначала добавьте переменную во вкладке «Переменные» слева.</div>';
+        bodyWrap.innerHTML = `<div class="small-note">${T('vars_none_add')}</div>`;
       } else {
         bodyWrap.innerHTML = `
-          <div class="field"><label>Переменная</label><select class="actVar">${project.variables.map(v => `<option value="${v.id}" ${v.id === action.varId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
-          <div class="field"><label>Новое значение</label><input type="text" class="actVal" value="${esc(action.value)}"></div>
+          <div class="field"><label>${T('label_variable')}</label><select class="actVar">${project.variables.map(v => `<option value="${v.id}" ${v.id === action.varId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>${T('label_new_value')}</label><input type="text" class="actVal" value="${esc(action.value)}"></div>
         `;
         bodyWrap.querySelector('.actVar').onchange = e => { action.varId = e.target.value; persist(); };
         bodyWrap.querySelector('.actVal').oninput = e => { action.value = e.target.value; persist(); };
       }
     } else if (action.kind === 'compute') {
       if (project.variables.length === 0) {
-        bodyWrap.innerHTML = '<div class="small-note">Сначала добавьте переменную во вкладке «Переменные» слева.</div>';
+        bodyWrap.innerHTML = `<div class="small-note">${T('vars_none_add')}</div>`;
       } else {
         bodyWrap.innerHTML = `
-          <div class="field"><label>Записать результат в переменную</label><select class="actVar">${project.variables.map(v => `<option value="${v.id}" ${v.id === action.varId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>${T('label_write_result_to')}</label><select class="actVar">${project.variables.map(v => `<option value="${v.id}" ${v.id === action.varId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
           <div class="field">
-            <label>Выражение</label>
-            <input type="text" class="actExpr" value="${esc(action.expression)}" placeholder="{очки} + 10">
-            <div class="field-hint">Операторы: + − * / % ( ). Сравнения: &gt; &lt; &gt;= &lt;= == !=. Логика: &amp;&amp; || !. Переменные — в фигурных скобках, например {очки}.</div>
+            <label>${T('label_expression')}</label>
+            <input type="text" class="actExpr" value="${esc(action.expression)}" placeholder="{score} + 10">
+            <div class="field-hint">${T('hint_expression')}</div>
           </div>
         `;
         bodyWrap.querySelector('.actVar').onchange = e => { action.varId = e.target.value; persist(); };
@@ -671,23 +898,23 @@ function renderActionEditor(container, action, allowCondition) {
     } else if (action.kind === 'telegram') {
       bodyWrap.innerHTML = `
         <div class="field">
-          <label>Шаблон сообщения</label>
+          <label>${T('label_message_template')}</label>
           <textarea class="actTpl">${esc(action.template)}</textarea>
-          <div class="field-hint">Можно вставлять {ИмяПеременной} — подставится текущее значение. Получатель настраивается во вкладке «Telegram» слева.</div>
+          <div class="field-hint">${T('hint_tg_template')}</div>
         </div>
       `;
       bodyWrap.querySelector('.actTpl').oninput = e => { action.template = e.target.value; persist(); };
     } else if (action.kind === 'condition') {
       bodyWrap.innerHTML = `
-        <div class="field"><label>Логика</label><select class="condLogicSel">
-          <option value="AND" ${action.logic === 'AND' ? 'selected' : ''}>Все условия верны (И)</option>
-          <option value="OR" ${action.logic === 'OR' ? 'selected' : ''}>Хотя бы одно верно (ИЛИ)</option>
+        <div class="field"><label>${T('label_logic')}</label><select class="condLogicSel">
+          <option value="AND" ${action.logic === 'AND' ? 'selected' : ''}>${T('logic_and')}</option>
+          <option value="OR" ${action.logic === 'OR' ? 'selected' : ''}>${T('logic_or')}</option>
         </select></div>
         <div class="rules-list condRulesList"></div>
-        <button type="button" class="add-btn condAddRuleBtn">+ добавить условие</button>
-        <div class="props-section-title">Если верно →</div>
+        <button type="button" class="add-btn condAddRuleBtn">${T('btn_add_rule')}</button>
+        <div class="props-section-title">${T('label_condition_then')}</div>
         <div class="subaction-box thenBox"></div>
-        <div class="props-section-title">Иначе →</div>
+        <div class="props-section-title">${T('label_condition_else')}</div>
         <div class="subaction-box elseBox"></div>
       `;
       bodyWrap.querySelector('.condLogicSel').onchange = e => { action.logic = e.target.value; persist(); };
@@ -724,16 +951,16 @@ function renderProps() {
     if (!scr) { empty.style.display = 'block'; return; }
     content.innerHTML = `
       <div class="field">
-        <label>Название экрана</label>
+        <label>${T('label_screen_name')}</label>
         <input type="text" id="propScreenName" value="${esc(scr.name)}">
       </div>
-      <div class="props-section-title">Фон экрана</div>
+      <div class="props-section-title">${T('section_screen_bg')}</div>
       <div id="screenBgWrap"></div>
-      <div class="props-section-title">О проекте</div>
+      <div class="props-section-title">${T('section_about_project')}</div>
       <div class="field">
-        <label>Название сайта</label>
+        <label>${T('label_site_title')}</label>
         <input type="text" id="propSiteTitle" value="${esc(project.title)}">
-        <div class="field-hint">Заголовок вкладки браузера в экспортированном сайте.</div>
+        <div class="field-hint">${T('hint_site_title')}</div>
       </div>
     `;
     document.getElementById('propScreenName').oninput = (e) => { scr.name = e.target.value; persist(); renderScreensList(); };
@@ -751,19 +978,19 @@ function renderProps() {
   let html = `<div class="props-section-title">${elementLabel(el.type)}</div>`;
 
   if (el.type === 'title' || el.type === 'text') {
-    html += `<div class="field"><label>Текст</label><textarea id="propText">${esc(el.props.text)}</textarea></div>`;
+    html += `<div class="field"><label>${T('label_text')}</label><textarea id="propText">${esc(el.props.text)}</textarea></div>`;
   }
   if (el.type === 'button') {
-    html += `<div class="field"><label>Текст на кнопке</label><input type="text" id="propText" value="${esc(el.props.text)}"></div>`;
+    html += `<div class="field"><label>${T('label_button_text')}</label><input type="text" id="propText" value="${esc(el.props.text)}"></div>`;
   }
   if (el.type === 'input') {
     html += `
-      <div class="field"><label>Подпись над полем</label><input type="text" id="propLabel" value="${esc(el.props.label)}"></div>
-      <div class="field"><label>Текст-подсказка внутри поля</label><input type="text" id="propPlaceholder" value="${esc(el.props.placeholder)}"></div>
+      <div class="field"><label>${T('label_field_label')}</label><input type="text" id="propLabel" value="${esc(el.props.label)}"></div>
+      <div class="field"><label>${T('label_placeholder')}</label><input type="text" id="propPlaceholder" value="${esc(el.props.placeholder)}"></div>
       <div class="field">
-        <label>Сохранять значение в переменную</label>
+        <label>${T('label_bind_var')}</label>
         <select id="propVarBind">
-          <option value="">— не привязано —</option>
+          <option value="">${T('opt_none_bind')}</option>
           ${project.variables.map(v => `<option value="${v.id}" ${v.id === el.props.varId ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}
         </select>
       </div>
@@ -772,44 +999,44 @@ function renderProps() {
   if (el.type === 'image') {
     html += `
       <div class="field">
-        <label>Картинка</label>
+        <label>${T('label_image_pick')}</label>
         <select id="propAsset">
-          <option value="">— плейсхолдер (без картинки) —</option>
+          <option value="">${T('opt_placeholder_img')}</option>
           ${project.assets.map(a => `<option value="${a.id}" ${a.id === el.props.assetId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}
         </select>
-        <div class="field-hint">Файлы загружаются во вкладке «Медиа» слева.</div>
+        <div class="field-hint">${T('hint_media_tab')}</div>
       </div>
-      <div class="field"><label>Подпись плейсхолдера (если картинка не выбрана)</label><input type="text" id="propLabel" value="${esc(el.props.label)}"></div>
+      <div class="field"><label>${T('label_placeholder_caption')}</label><input type="text" id="propLabel" value="${esc(el.props.label)}"></div>
     `;
   }
 
   if (['title', 'text', 'button'].includes(el.type)) {
-    html += `<div class="props-section-title">Шрифт и стиль текста</div><div id="fontWrap"></div>`;
-    html += `<div class="props-section-title">Цвет текста</div><div id="styleTextWrap"></div>`;
+    html += `<div class="props-section-title">${T('section_font')}</div><div id="fontWrap"></div>`;
+    html += `<div class="props-section-title">${T('section_text_color')}</div><div id="styleTextWrap"></div>`;
   }
   if (['button', 'input', 'image'].includes(el.type)) {
-    html += `<div class="props-section-title">Фон элемента</div><div id="styleBgWrap"></div>`;
+    html += `<div class="props-section-title">${T('section_bg')}</div><div id="styleBgWrap"></div>`;
     html += `
       <div class="field">
-        <label>Скругление углов (px)</label>
+        <label>${T('label_radius')}</label>
         <div class="range-row"><input type="range" id="propRadius" min="0" max="40" value="${el.style.radius}"><span class="range-val" id="propRadiusVal">${el.style.radius}px</span></div>
       </div>
     `;
   }
   if (el.type === 'divider') {
-    html += `<div class="props-section-title">Цвет разделителя</div><div id="styleBgWrap"></div>`;
+    html += `<div class="props-section-title">${T('section_divider_color')}</div><div id="styleBgWrap"></div>`;
     html += `
       <div class="field">
-        <label>Скругление краёв (px)</label>
+        <label>${T('label_radius_edge')}</label>
         <div class="range-row"><input type="range" id="propRadius" min="0" max="15" value="${el.style.radius}"><span class="range-val" id="propRadiusVal">${el.style.radius}px</span></div>
       </div>
-      <div class="small-note">Ширину и толщину меняйте, перетаскивая за края/уголок прямо на холсте.</div>
+      <div class="small-note">${T('divider_resize_hint')}</div>
     `;
   }
   if (el.type === 'button') {
-    html += `<div class="props-section-title">Действие кнопки</div><div id="btnActionWrap"></div>`;
+    html += `<div class="props-section-title">${T('section_action')}</div><div id="btnActionWrap"></div>`;
   }
-  html += `<div class="props-section-title">Видимость</div><div id="condWrap"></div>`;
+  html += `<div class="props-section-title">${T('section_visibility')}</div><div id="condWrap"></div>`;
 
   content.innerHTML = html;
 
@@ -822,12 +1049,12 @@ function renderProps() {
   if (document.getElementById('fontWrap')) {
     const fw = document.getElementById('fontWrap');
     fw.innerHTML = `
-      <div class="field"><label>Шрифт</label><select id="fontFamily">${FONT_OPTIONS.map(f => `<option value="${f.value}" ${f.value === el.style.font.family ? 'selected' : ''}>${f.label}</option>`).join('')}</select></div>
+      <div class="field"><label>${T('label_font')}</label><select id="fontFamily">${FONT_VALUES.map(f => `<option value="${f.value}" ${f.value === el.style.font.family ? 'selected' : ''}>${T(f.key)}</option>`).join('')}</select></div>
       <div class="font-toggle-row">
-        <button type="button" class="ftbtn ${el.style.font.bold ? 'active' : ''}" data-k="bold" title="Жирный"><b>Ж</b></button>
-        <button type="button" class="ftbtn ${el.style.font.italic ? 'active' : ''}" data-k="italic" title="Курсив"><i>К</i></button>
-        <button type="button" class="ftbtn ${el.style.font.underline ? 'active' : ''}" data-k="underline" title="Подчёркнутый" style="text-decoration:underline;">П</button>
-        <button type="button" class="ftbtn ${el.style.font.strike ? 'active' : ''}" data-k="strike" title="Зачёркнутый" style="text-decoration:line-through;">З</button>
+        <button type="button" class="ftbtn ${el.style.font.bold ? 'active' : ''}" data-k="bold" title="${T('tt_bold')}"><b>${currentLang === 'ru' ? 'Ж' : 'B'}</b></button>
+        <button type="button" class="ftbtn ${el.style.font.italic ? 'active' : ''}" data-k="italic" title="${T('tt_italic')}"><i>${currentLang === 'ru' ? 'К' : 'I'}</i></button>
+        <button type="button" class="ftbtn ${el.style.font.underline ? 'active' : ''}" data-k="underline" title="${T('tt_underline')}" style="text-decoration:underline;">${currentLang === 'ru' ? 'П' : 'U'}</button>
+        <button type="button" class="ftbtn ${el.style.font.strike ? 'active' : ''}" data-k="strike" title="${T('tt_strike')}" style="text-decoration:line-through;">${currentLang === 'ru' ? 'З' : 'S'}</button>
       </div>
     `;
     fw.querySelector('#fontFamily').onchange = e => { el.style.font.family = e.target.value; persist(); renderCanvas(); };
@@ -864,7 +1091,7 @@ function renderAssetsList() {
   const wrap = document.getElementById('assetsList');
   if (!wrap) return;
   wrap.innerHTML = '';
-  if (project.assets.length === 0) { wrap.innerHTML = '<div class="small-note">Файлов пока нет. Загрузите картинку кнопкой выше.</div>'; return; }
+  if (project.assets.length === 0) { wrap.innerHTML = `<div class="small-note">${T('asset_none')}</div>`; return; }
   project.assets.forEach(a => {
     const card = document.createElement('div');
     card.className = 'asset-card';
@@ -872,12 +1099,12 @@ function renderAssetsList() {
       <img class="asset-thumb" src="${a.dataUrl}">
       <input type="text" class="asset-name-input" value="${esc(a.name)}">
       <div class="asset-actions">
-        <button data-act="up" title="Выше в списке">↑</button>
-        <button data-act="down" title="Ниже в списке">↓</button>
-        <button data-act="replace" title="Изменить файл">✏️</button>
-        <button data-act="dl" title="Скачать">⬇️</button>
-        <button data-act="dup" title="Копировать">⧉</button>
-        <button data-act="del" title="Удалить">✕</button>
+        <button data-act="up" title="↑">↑</button>
+        <button data-act="down" title="↓">↓</button>
+        <button data-act="replace" title="✏️">✏️</button>
+        <button data-act="dl" title="⬇️">⬇️</button>
+        <button data-act="dup" title="⧉">⧉</button>
+        <button data-act="del" title="✕">✕</button>
       </div>
       <input type="file" accept="image/*" class="asset-replace-input" hidden>
     `;
@@ -886,7 +1113,7 @@ function renderAssetsList() {
     card.querySelector('[data-act="down"]').onclick = () => moveAsset(a.id, 1);
     card.querySelector('[data-act="dl"]').onclick = () => downloadDataUrl(a.name, a.dataUrl);
     card.querySelector('[data-act="dup"]').onclick = () => {
-      project.assets.push({ id: uid('asset'), name: a.name + ' (копия)', dataUrl: a.dataUrl });
+      project.assets.push({ id: uid('asset'), name: a.name + ' (copy)', dataUrl: a.dataUrl });
       persist(); renderAssetsList();
     };
     const replaceInput = card.querySelector('.asset-replace-input');
@@ -896,7 +1123,7 @@ function renderAssetsList() {
       e.target.value = '';
     });
     card.querySelector('[data-act="del"]').onclick = () => {
-      if (!confirm('Удалить файл «' + a.name + '»? Если он используется как картинка на экране, там появится плейсхолдер.')) return;
+      if (!confirm(Tf('confirm_delete_asset', { name: a.name }))) return;
       project.assets = project.assets.filter(x => x.id !== a.id);
       project.screens.forEach(s => s.elements.forEach(el => { if (el.type === 'image' && el.props.assetId === a.id) el.props.assetId = ''; }));
       persist(); renderAssetsList(); renderCanvas(); renderProps();
@@ -947,19 +1174,19 @@ function renderVarsList() {
   const wrap = document.getElementById('varsList');
   if (!wrap) return;
   wrap.innerHTML = '';
-  if (project.variables.length === 0) { wrap.innerHTML = '<div class="small-note">Переменных пока нет.</div>'; return; }
+  if (project.variables.length === 0) { wrap.innerHTML = `<div class="small-note">${T('vars_none')}</div>`; return; }
   project.variables.forEach(v => {
     const row = document.createElement('div');
     row.className = 'var-row';
     row.innerHTML = `
-      <input type="text" class="vname" placeholder="имя" value="${esc(v.name)}">
-      <input type="text" class="vval" placeholder="начальное значение" value="${esc(v.value)}">
-      <button class="del" title="Удалить">✕</button>
+      <input type="text" class="vname" placeholder="${T('var_name_ph')}" value="${esc(v.name)}">
+      <input type="text" class="vval" placeholder="${T('var_value_ph')}" value="${esc(v.value)}">
+      <button class="del" title="✕">✕</button>
     `;
     row.querySelector('.vname').oninput = e => { v.name = e.target.value; persist(); renderProps(); };
     row.querySelector('.vval').oninput = e => { v.value = e.target.value; persist(); };
     row.querySelector('.del').onclick = () => {
-      if (!confirm('Удалить переменную «' + v.name + '»?')) return;
+      if (!confirm(Tf('confirm_delete_var', { name: v.name }))) return;
       project.variables = project.variables.filter(x => x.id !== v.id);
       persist(); renderVarsList(); renderProps();
     };
@@ -1155,9 +1382,9 @@ ${screensHTML}
   }
 
   function sendTelegram(template) {
-    if (!TG_BOT_TOKEN) { console.warn('Telegram-бот не настроен'); return; }
+    if (!TG_BOT_TOKEN) { console.warn('Telegram bot not configured'); return; }
     var recipient = TG_MODE === 'dm' ? TG_USER_ID : TG_CHAT_ID;
-    if (!recipient) { console.warn('Не указан получатель Telegram'); return; }
+    if (!recipient) { console.warn('No Telegram recipient set'); return; }
     var text = interpolate(template);
     var payload = { chat_id: recipient, text: text };
     if (TG_MODE !== 'dm' && TG_THREAD_ID) payload.message_thread_id = parseInt(TG_THREAD_ID, 10);
@@ -1222,16 +1449,16 @@ function importProjectJSON(file) {
       selection = { kind: 'screen', screenId: project.activeScreenId, elementId: null };
       persist();
       renderAll();
-      alert('✅ Проект загружен');
+      alert(T('alert_project_loaded'));
     } catch (err) {
-      alert('❌ Не удалось прочитать файл проекта: похоже, это не тот формат.');
+      alert(T('alert_project_load_failed'));
     }
   };
   reader.readAsText(file);
 }
 
 function newProject() {
-  if (!confirm('Создать новый проект? Текущий будет заменён в редакторе (сохранённые файлы project.json это не затронет).')) return;
+  if (!confirm(T('confirm_new_project'))) return;
   project = defaultProject();
   selection = { kind: 'screen', screenId: project.activeScreenId, elementId: null };
   persist();
@@ -1241,15 +1468,33 @@ function newProject() {
 // =====================================================================
 // ПРИВЯЗКА СТАТИЧНОГО UI
 // =====================================================================
+function closeMenu() { document.getElementById('menuDropdown').style.display = 'none'; }
+
 function bindStaticUI() {
   document.getElementById('btnAddScreen').onclick = addScreen;
-  document.getElementById('btnNewProject').onclick = newProject;
-  document.getElementById('btnSaveJSON').onclick = exportProjectJSON;
-  document.getElementById('btnExport').onclick = exportSite;
-  document.getElementById('btnPreview').onclick = previewSite;
+  document.getElementById('mClear').onclick = () => { newProject(); closeMenu(); };
+  document.getElementById('mSave').onclick = () => { exportProjectJSON(); closeMenu(); };
+  document.getElementById('mExport').onclick = () => { exportSite(); closeMenu(); };
+  document.getElementById('mPreview').onclick = () => { previewSite(); closeMenu(); };
+
+  const menuBtn = document.getElementById('btnMenu');
+  const menuDropdown = document.getElementById('menuDropdown');
+  menuBtn.onclick = (e) => {
+    e.stopPropagation();
+    menuDropdown.style.display = menuDropdown.style.display === 'none' ? 'block' : 'none';
+  };
+  document.addEventListener('click', (e) => {
+    if (!menuDropdown.contains(e.target) && e.target !== menuBtn) menuDropdown.style.display = 'none';
+  });
+
+  document.querySelectorAll('#langRow .menu-choice-btn').forEach(btn => {
+    btn.onclick = () => { setLang(btn.dataset.lang); };
+  });
+
   document.getElementById('fileLoadJSON').addEventListener('change', (e) => {
     if (e.target.files[0]) importProjectJSON(e.target.files[0]);
     e.target.value = '';
+    closeMenu();
   });
   document.getElementById('palette').addEventListener('click', (e) => {
     const btn = e.target.closest('.palette-btn');
@@ -1260,7 +1505,7 @@ function bindStaticUI() {
     e.target.value = '';
   });
   document.getElementById('btnAddVar').onclick = () => {
-    project.variables.push({ id: uid('var'), name: 'переменная' + (project.variables.length + 1), value: '' });
+    project.variables.push({ id: uid('var'), name: T('var_default_name') + (project.variables.length + 1), value: '' });
     persist();
     renderVarsList();
   };
